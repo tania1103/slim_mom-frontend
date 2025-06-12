@@ -3,6 +3,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'react-toastify';
 
+
 axios.defaults.baseURL = process.env.REACT_APP_API_URL;
 
 
@@ -77,7 +78,7 @@ export const login = createAsyncThunk(
       const response = await axios.post('/auth/login', credentials);
       const { user, accessToken, refreshToken } = response.data;
 
-      
+     
 
       setAuthHeader(accessToken);
       scheduleTokenRefresh(accessToken, thunkAPI.dispatch);

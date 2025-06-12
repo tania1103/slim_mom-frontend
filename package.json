@@ -2,7 +2,7 @@
   "name": "slimmom-frontend",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://github.com/tania1103/slim_mom.git",
+  "homepage": "https://tania1103.github.io/slim_mom-frontend/",
   "dependencies": {
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
@@ -31,7 +31,7 @@
     "react-toastify": "^10.0.5",
     "redux-persist": "^6.0.0",
     "styled-components": "^6.1.13",
-    "slimmom-frontend": "file:",
+    "team3-slimmom-frontend": "file:",
     "web-vitals": "^2.1.3"
   },
   "scripts": {

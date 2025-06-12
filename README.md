@@ -1,4 +1,5 @@
 # Slim-mom Frontend
+Team 3 Fullstack Final Project
 
 Slim Mom App is a health and fitness 
 application designed specifically for mothers 
@@ -14,7 +15,17 @@ health goals in a sustainable and convenient
 way.
 
 **Contributors:**
-Tatiana Culeac
+1. Joseph Camacho
+2. Joanna Justo
+3. Julius Baraquiel
+4. Jennifer Durana
+5. Manuel Saavedra
+6. Kate Limosnero
+7. Oseyi Oboh
+8. King Martin Dato
+9. Shane Enriquez
+10. Louis Severino Romano
+11. Kim Angelo Alvarez
 
 **Tech Stacks:**
 1. React
@@ -22,3 +33,6 @@ Tatiana Culeac
 3. MUI
 4. Axios
 5. Tailwind CSS
+
+
+

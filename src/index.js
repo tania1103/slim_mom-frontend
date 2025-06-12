@@ -11,7 +11,7 @@ import 'axiosSetup';
 ReactDOM.createRoot(document.getElementById('root')).render(
   <Provider store={store}>
     <PersistGate loading={null} persistor={persistor}>
-      <Router basename="/">
+      <Router basename="/slim_mom-frontend">
         <App />
       </Router>
     </PersistGate>
