@@ -8,6 +8,23 @@ import productsData from '../components/data/products.json';
 const mockUsers = new Map();
 let mockUserIdCounter = 1;
 
+// Add a default test user for development
+const defaultUser = {
+  id: 1,
+  name: 'Test User',
+  email: 'test@example.com',
+  password: 'password123',
+  height: 170,
+  age: 25,
+  currentWeight: 70,
+  desiredWeight: 65,
+  bloodType: 2,
+  createdAt: new Date().toISOString(),
+  isVerified: true
+};
+mockUsers.set(1, defaultUser);
+mockUserIdCounter = 2; // Next user will have ID 2
+
 // Mock diary entries
 const mockDiaryEntries = new Map();
 let mockDiaryIdCounter = 1;
@@ -66,11 +83,16 @@ export class MockAPI {
     await delay();
 
     const { email, password } = credentials;
+    console.log('🔧 Mock login attempt for:', email);
+
       // Find user by email
     for (const [userId, user] of mockUsers) {
       if (user.email === email && user.password === password) {
+        console.log('✅ Login successful - userId:', userId);
+        console.log('🔧 Full user object:', user);
         const { password: _, ...userWithoutPassword } = user;
-        const token = generateMockToken(userId);
+        console.log('🔧 User without password:', userWithoutPassword);
+        const token = generateMockToken(userId); // Use the existing userId from mockUsers
 
         return {
           data: {
@@ -82,6 +104,7 @@ export class MockAPI {
       }
     }
 
+    console.error('❌ Login failed for:', email);
     throw new Error('Invalid credentials');
   }
 
@@ -107,7 +130,6 @@ export class MockAPI {
       }
     };
   }
-
   static async logout() {
     await delay();
     return { data: { message: 'Logged out successfully' } };
@@ -117,9 +139,29 @@ export class MockAPI {
   static async searchProducts(query) {
     await delay();
 
-    const filteredProducts = productsData.filter(product =>
-      product.title.toLowerCase().includes(query.toLowerCase())
-    );
+    if (!query || typeof query !== 'string') {
+      return { data: [] };
+    }
+
+    const filteredProducts = productsData.filter(product => {
+      if (!product || !product.title) {
+        return false;
+      }
+
+      let title = '';
+      if (typeof product.title === 'string') {
+        title = product.title;
+      } else if (typeof product.title === 'object' && product.title !== null) {
+        title = product.title.ua || product.title.en || product.title.ru || '';
+      }
+
+      // Safety check - ensure both title and query are strings before calling toLowerCase
+      if (typeof title !== 'string' || typeof query !== 'string') {
+        return false;
+      }
+
+      return title.toLowerCase().includes(query.toLowerCase());
+    });
 
     return {
       data: filteredProducts.slice(0, 10) // Limit to 10 results
@@ -182,13 +224,26 @@ export class MockAPI {
   static async updateProfile(profileData, userId) {
     await delay();
 
+    console.log('🔧 Mock updateProfile - userId:', userId, 'data:', profileData);
+    console.log('Available users:', Array.from(mockUsers.keys()));
+
     const user = mockUsers.get(userId);
     if (!user) {
+      console.error('❌ User not found in mockUsers. UserId:', userId, 'Available:', Array.from(mockUsers.entries()));
       throw new Error('User not found');
     }
 
-    const updatedUser = { ...user, ...profileData };
+    // Map the profile data to user fields
+    const updatedUser = {
+      ...user,
+      ...profileData,
+      // Ensure consistency with different naming conventions
+      currentWeight: profileData.cWeight || profileData.currentWeight,
+      desiredWeight: profileData.dWeight || profileData.desiredWeight
+    };
+
     mockUsers.set(userId, updatedUser);
+    console.log('✅ Profile updated successfully for user:', userId);
 
     const { password: _, ...userWithoutPassword } = updatedUser;
     return { data: userWithoutPassword };
@@ -197,8 +252,11 @@ export class MockAPI {
   static async getProfile(userId) {
     await delay();
 
+    console.log('🔧 Mock getProfile - userId:', userId, 'Available users:', Array.from(mockUsers.keys()));
+
     const user = mockUsers.get(userId);
     if (!user) {
+      console.error('❌ Profile not found in mockUsers. UserId:', userId);
       throw new Error('Profile not found');
     }
 
@@ -210,22 +268,4 @@ export class MockAPI {
 // Initialize with some demo data
 if (MockAPI.isEnabled) {
   console.log('🔧 Mock API enabled for development');
-
-  // Add demo user
-  mockUsers.set(1, {
-    id: 1,
-    name: 'Demo User',
-    email: 'demo@slimmom.com',
-    password: 'demo123',
-    height: 170,
-    age: 25,
-    currentWeight: 70,
-    desiredWeight: 65,
-    bloodType: 2,
-    dailyCalories: 1800,
-    createdAt: new Date().toISOString(),
-    isVerified: true
-  });
-
-  mockUserIdCounter = 2;
 }

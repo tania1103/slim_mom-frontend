@@ -43,7 +43,7 @@ describe('Header Component', () => {
   test('displays logo', () => {
     renderHeader();
     // Logo should be present in header - look for link to home
-    const logoLink = screen.getByRole('link', { name: /home|logo/i }) || 
+    const logoLink = screen.getByRole('link', { name: /home|logo/i }) ||
                     screen.getByText(/slim|mom/i);
     expect(logoLink).toBeInTheDocument();
   });

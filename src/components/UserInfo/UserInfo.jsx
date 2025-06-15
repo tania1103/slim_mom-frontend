@@ -11,6 +11,9 @@ export const UserInfo = () => {
   const { user, isLoggedIn } = useAuth();
   const isLoading = useSelector(selectIsLoading);
 
+  // Debug: Log user data
+  console.log('🔧 UserInfo - user:', user, 'isLoggedIn:', isLoggedIn);
+
   // Customize Notiflix Prompt and Loading styles
   Notiflix.Confirm.init({
     titleColor: '#FC842D',

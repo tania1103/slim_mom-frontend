@@ -6,14 +6,14 @@ import styles from './Modal.module.css';
 /**
  * Modal component cu cerințele 3-5:
  * - Layout responsive pentru mobil, tabletă, desktop
- * - Închidere la click în afara modalului 
+ * - Închidere la click în afara modalului
  * - Închidere cu tasta Escape
  * - Performance optimized cu useCallback
  */
-const Modal = ({ 
-  isOpen, 
-  onClose, 
-  children, 
+const Modal = ({
+  isOpen,
+  onClose,
+  children,
   title,
   showCloseButton = true,
   maxWidth = 'md',
@@ -42,12 +42,12 @@ const Modal = ({
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleEscapeKey);
-      
+
       // Prevent body scroll pentru better UX
       if (preventBodyScroll) {
         document.body.style.overflow = 'hidden';
       }
-      
+
       return () => {
         document.removeEventListener('keydown', handleEscapeKey);
         if (preventBodyScroll) {
@@ -60,7 +60,7 @@ const Modal = ({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div 
+    <div
       className={styles.backdrop}
       onClick={handleBackdropClick}
       role="dialog"
@@ -85,11 +85,11 @@ const Modal = ({
                 aria-label="Close modal"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path 
-                    d="M18 6L6 18M6 6L18 18" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
                     strokeLinejoin="round"
                   />
                 </svg>
@@ -97,7 +97,7 @@ const Modal = ({
             )}
           </div>
         )}
-        
+
         {/* Content */}
         <div id="modal-content" className={styles.content}>
           {children}
@@ -112,7 +112,7 @@ const Modal = ({
 Modal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
-  children: PropTypes.node.isRequired,
+  children: PropTypes.node,
   title: PropTypes.string,
   showCloseButton: PropTypes.bool,
   maxWidth: PropTypes.oneOf(['sm', 'md', 'lg', 'xl']),

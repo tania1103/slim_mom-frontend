@@ -98,15 +98,13 @@ export const MainPage = () => {
     try {
       const result = await calculateDailyCalories(formData);
       setCalculationResult(result);
-      setIsModalOpen(true);
-
-      // If user is logged in, update profile
+      setIsModalOpen(true);      // If user is logged in, update profile
       if (isLoggedIn) {
         const profileData = {
           height: parseFloat(formData.height),
           age: parseInt(formData.age),
-          currentWeight: parseFloat(formData.currentWeight),
-          desiredWeight: parseFloat(formData.desiredWeight),
+          cWeight: parseFloat(formData.currentWeight),
+          dWeight: parseFloat(formData.desiredWeight),
           bloodType: parseInt(formData.bloodType),
           dailyCalories: result.dailyCalories
         };

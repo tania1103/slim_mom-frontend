@@ -76,13 +76,18 @@ export const login = createAsyncThunk(
   async (credentials, thunkAPI) => {
     try {
       const response = await axios.post('/auth/login', credentials);
-      const { user, accessToken, refreshToken } = response.data;
+      console.log('🔧 Login response:', response.data);
 
-     
+      const { user, accessToken, refreshToken, token } = response.data;
+      // Handle both backend format (accessToken) and Mock API format (token)
+      const finalToken = accessToken || token;
 
-      setAuthHeader(accessToken);
-      scheduleTokenRefresh(accessToken, thunkAPI.dispatch);
-      return { user, token: accessToken, refreshToken };
+      console.log('🔧 Final user data:', user);
+      console.log('🔧 Final token:', finalToken);
+
+      setAuthHeader(finalToken);
+      scheduleTokenRefresh(finalToken, thunkAPI.dispatch);
+      return { user, token: finalToken, refreshToken };
     } catch (error) {
       const status = error.response?.status;
       const message = error.response?.data?.message || error.message;

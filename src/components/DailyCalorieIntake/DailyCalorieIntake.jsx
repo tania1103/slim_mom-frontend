@@ -45,18 +45,23 @@ const DailyCalorieIntake = ({ result, onStartLosing }) => {
       <div className={styles.foodSection}>
         <h4 className={styles.foodTitle}>
           Foods you should not eat
-        </h4>
-
-        {notRecommendedProducts.length > 0 ? (
+        </h4>        {notRecommendedProducts.length > 0 ? (
           <div className={styles.foodList}>
-            {notRecommendedProducts.slice(0, 5).map((product, index) => (
-              <span key={product._id || index} className={styles.foodItem}>
-                {product.title || product.name}
-                {index < Math.min(notRecommendedProducts.length, 5) - 1 && ', '}
-              </span>
-            ))}
+            {notRecommendedProducts.slice(0, 5).map((product, index) => {
+              // Handle different _id formats (string or object with $oid)
+              const productId = typeof product._id === 'string'
+                ? product._id
+                : product._id?.$oid || `product-${index}`;
+
+              return (
+                <span key={productId} className={styles.foodItem}>
+                  {product.title || product.name}
+                  {index < Math.min(notRecommendedProducts.length, 5) - 1 && ', '}
+                </span>
+              );
+            })}
             {notRecommendedProducts.length > 5 && (
-              <span className={styles.moreItems}>
+              <span key="more-items" className={styles.moreItems}>
                 and {notRecommendedProducts.length - 5} more...
               </span>
             )}
@@ -86,7 +91,10 @@ DailyCalorieIntake.propTypes = {
   result: PropTypes.shape({
     dailyCalories: PropTypes.number,
     notRecommendedProducts: PropTypes.arrayOf(PropTypes.shape({
-      _id: PropTypes.string,
+      _id: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.object
+      ]),
       title: PropTypes.string,
       name: PropTypes.string
     })),

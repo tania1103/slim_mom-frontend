@@ -28,8 +28,10 @@ const getUserIdFromToken = (token) => {
   if (!token) return null;
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
+    console.log('🔧 Token payload:', payload);
     return payload.id;
-  } catch {
+  } catch (error) {
+    console.error('❌ Error parsing token:', error);
     return null;
   }
 };
@@ -107,11 +109,10 @@ async function handleWithMockAPI(config) {
 
     if (url.includes('/auth/logout') && method === 'post') {
       return await MockAPI.logout();
-    }
-
-    // Product endpoints
+    }    // Product endpoints
     if (url.includes('/product/search') && method === 'get') {
-      const query = new URLSearchParams(url.split('?')[1]).get('query');
+      const urlParams = new URLSearchParams(url.split('?')[1]);
+      const query = urlParams.get('title') || urlParams.get('query') || '';
       return await MockAPI.searchProducts(query);
     }
 
@@ -141,10 +142,12 @@ async function handleWithMockAPI(config) {
 
     // Profile endpoints (require auth)
     if (url.includes('/profile/update') && method === 'put') {
+      console.log('🔧 Profile update - userId:', userId, 'data:', data);
       return await MockAPI.updateProfile(data, userId);
     }
 
     if (url.includes('/profile/fetch') && method === 'get') {
+      console.log('🔧 Profile fetch - userId:', userId);
       return await MockAPI.getProfile(userId);
     }
 
