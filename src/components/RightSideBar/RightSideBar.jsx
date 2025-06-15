@@ -8,7 +8,7 @@ import {
   Text,
   RedText,
 } from './RightSideBar.styled';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import {
   getProfileUser,
   getProfileLoading,
@@ -52,7 +52,7 @@ export const RightSideBar = () => {
             <SummaryWrap>
               <Title>
                 Summary for{' '}
-                {moment(selectedDate, 'YYYY-MM-DD').format('DD.MM.YYYY')}
+                {dayjs(selectedDate, 'YYYY-MM-DD').format('DD.MM.YYYY')}
               </Title>
               <ul>
                 <Item>

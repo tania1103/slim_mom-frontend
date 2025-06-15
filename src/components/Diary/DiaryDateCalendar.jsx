@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Typography, IconButton } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { CalendarToday } from '@mui/icons-material';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import { setSelectedDate } from '../../redux/diary/diarySlice';
 import { fetchDiaryEntries } from '../../redux/diary/diaryOperations';
 import { useMediaQuery, useTheme } from '@mui/material';
@@ -19,13 +19,13 @@ const DiaryDateCalendar = ({ disabled = false }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleDateChange = newDate => {
-    const formattedDate = moment(newDate).format('YYYY-MM-DD');
+    const formattedDate = dayjs(newDate).format('YYYY-MM-DD');
     dispatch(setSelectedDate(formattedDate));
     dispatch(fetchDiaryEntries(formattedDate));
   };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterMoment}>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box
         display="flex"
         alignItems="center"
@@ -46,7 +46,7 @@ const DiaryDateCalendar = ({ disabled = false }) => {
             opacity: disabled ? 0.5 : 1,
           }}
         >
-          {moment(selectedDate, 'YYYY-MM-DD').format('DD.MM.YYYY')}
+          {dayjs(selectedDate, 'YYYY-MM-DD').format('DD.MM.YYYY')}
         </Typography>
 
         {/* Calendar Icon Button */}
@@ -71,7 +71,7 @@ const DiaryDateCalendar = ({ disabled = false }) => {
                   fontSize: '0px',
                 },
               }}
-              value={moment(selectedDate, 'YYYY-MM-DD')}
+              value={dayjs(selectedDate, 'YYYY-MM-DD')}
               onChange={handleDateChange}
               open={open}
               onClose={() => setOpen(false)}

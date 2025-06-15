@@ -14,6 +14,7 @@
     "@testing-library/react": "^12.1.4",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.7.7",
+    "dayjs": "^1.11.13",
     "jwt-decode": "^4.0.0",
     "lodash": "^4.17.21",
     "moment": "^2.30.1",
@@ -31,7 +32,6 @@
     "react-toastify": "^10.0.5",
     "redux-persist": "^6.0.0",
     "styled-components": "^6.1.13",
-    "team3-slimmom-frontend": "file:",
     "web-vitals": "^2.1.3"
   },
   "scripts": {
@@ -39,7 +39,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "lint:js": "eslint src/**/*.{js,jsx}"
+    "lint:js": "eslint src/**/*.{js,jsx}",
+    "lint:sw": "eslint public/sw.js",
+    "lint": "npm run lint:js && npm run lint:sw"
   },
   "eslintConfig": {
     "extends": [

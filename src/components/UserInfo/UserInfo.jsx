@@ -4,12 +4,12 @@ import svg from '../../images/vector.svg';
 import { logout } from '../../redux/auth/authOperations';
 import { useAuth } from 'hooks/useAuth';
 import Notiflix from 'notiflix';
-import { getIsLoading } from '../../redux/auth/selectors';
+import { selectIsLoading } from '../../redux/auth/selectors';
 
 export const UserInfo = () => {
   const dispatch = useDispatch();
   const { user, isLoggedIn } = useAuth();
-  const isLoading = useSelector(getIsLoading);
+  const isLoading = useSelector(selectIsLoading);
 
   // Customize Notiflix Prompt and Loading styles
   Notiflix.Confirm.init({
@@ -52,7 +52,7 @@ export const UserInfo = () => {
     isLoggedIn && (
       <div className="flex items-center gap-[20px] text-[14px] font-bold cursor-default">
         <p className="text-nowrap">{user?.name || 'User'}</p>
-        <svg height={32} width={2}>
+        <svg height={32} width={2} data-testid="separator-line" aria-hidden="true">
           <use href={`${svg}#short-line`}></use>
         </svg>
         <button

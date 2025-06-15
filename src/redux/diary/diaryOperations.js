@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import moment from 'moment';
-import { getToken } from '../auth/selectors';
+import { formatDateForAPI } from '../../utils/dateHelpers';
+import { selectToken } from '../auth/selectors';
 
 axios.defaults.baseURL = process.env.REACT_APP_API_URL;
 
@@ -9,7 +9,7 @@ export const addToDiary = createAsyncThunk(
   'diary/addToDiary',
   async ({ date, grams, product }, { getState, rejectWithValue }) => {
     try {
-      const token = getToken(getState());
+      const token = selectToken(getState());
       const { calories, categories, title } = product;
       const calorieIntake = (grams * calories) / 100;
 
@@ -40,13 +40,13 @@ export const addToDiary = createAsyncThunk(
 export const fetchDiaryEntries = createAsyncThunk(
   'diary/fetchDiaryEntries',
   async (date, { getState, rejectWithValue }) => {
-    const token = getToken(getState());
+    const token = selectToken(getState());
 
     if (!token) {
       return rejectWithValue('No authentication token found');
     }
 
-    const formattedDate = moment(date).format('YYYY-MM-DD') + 'T00:00:00.000Z';
+    const formattedDate = formatDateForAPI(date);
     try {
       const response = await axios.get(`/diary/fetch?date=${formattedDate}`, {
         headers: {
@@ -65,7 +65,7 @@ export const fetchDiaryEntries = createAsyncThunk(
 export const deleteDiaryEntry = createAsyncThunk(
   'diary/deleteDiaryEntry',
   async (id, { getState, rejectWithValue }) => {
-    const token = getToken(getState());
+    const token = selectToken(getState());
 
     if (!token) {
       return rejectWithValue('No authentication token found');

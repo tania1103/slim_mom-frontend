@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { getToken } from '../auth/selectors';
+import { selectToken } from '../auth/selectors';
 
 axios.defaults.baseURL = process.env.REACT_APP_API_URL;
 
@@ -11,7 +11,7 @@ export const updateProfile = createAsyncThunk(
     { height, dWeight, age, bloodType, cWeight, dailyCalories },
     { getState, rejectWithValue }
   ) => {
-    const token = getToken(getState());
+    const token = selectToken(getState());
     if (!token) {
       return rejectWithValue('No token found');
     }
@@ -45,7 +45,7 @@ export const updateProfile = createAsyncThunk(
 export const fetchProfile = createAsyncThunk(
   'profile/fetchProfile',
   async (_, thunkAPI) => {
-    const token = getToken(thunkAPI.getState());
+    const token = selectToken(thunkAPI.getState());
     if (!token) {
       return thunkAPI.rejectWithValue('No token found');
     }

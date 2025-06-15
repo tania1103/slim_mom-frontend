@@ -1,7 +1,8 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { ThreeDots } from 'react-loader-spinner';
 
-export const BtnLoader = ({ color }) => {
+export const BtnLoader = ({ color = '#fc842d' }) => {
   return (
     <ThreeDots
       visible={true}
@@ -11,4 +12,9 @@ export const BtnLoader = ({ color }) => {
       ariaLabel="three-dots-loading"
     />
   );
+};
+
+// PropTypes validation
+BtnLoader.propTypes = {
+  color: PropTypes.string,
 };

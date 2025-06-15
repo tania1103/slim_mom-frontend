@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import {
   addToDiary,
   fetchDiaryEntries,
@@ -7,10 +7,10 @@ import {
 } from './diaryOperations';
 
 const diaryState = {
-  date: moment().format('DD.MM.YYYY'),
+  date: dayjs().format('DD.MM.YYYY'),
   productsList: [],
   searchResults: [],
-  selectedDate: moment().format('YYYY-MM-DD') + 'T00:00:00.000Z',
+  selectedDate: dayjs().format('YYYY-MM-DD') + 'T00:00:00.000Z',
   isLoading: false,
   diaryEntries: [],
   error: null,

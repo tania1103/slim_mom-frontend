@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../../redux/auth/authOperations';
-import { getIsLoading } from '../../redux/auth/selectors';
+import { selectIsLoading } from '../../redux/auth/selectors';
 import { Link } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -10,8 +10,7 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 export const LoginForm = () => {
   const dispatch = useDispatch();
-  const isLoading = useSelector(getIsLoading);
-
+  const isLoading = useSelector(selectIsLoading);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

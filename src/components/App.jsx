@@ -5,7 +5,7 @@ import { LoginPage } from 'pages/LoginPage';
 import { RegistrationPage } from 'pages/RegistrationPage';
 import { VerificationPage } from 'pages/VerificationPage';
 import { DiaryPage } from 'pages/DiaryPage';
-import { CalculatorPage } from 'pages/CalculatorPage';
+import CalculatorPage from 'pages/CalculatorPage';
 import { RestrictedRoute } from './RestrictedRoute/RestrictedRoute';
 import { ProtectedRoute } from './ProtectedRoute/ProtectedRoute';
 import { useAuth } from 'hooks/useAuth';
@@ -18,6 +18,7 @@ import { fetchProfile } from '../redux/profile/profileOperations';
 import { fetchDiaryEntries } from '../redux/diary/diaryOperations';
 import { Loader } from './Loader/Loader';
 import { ToastContainer } from 'react-toastify';
+import ErrorBoundary from './ErrorBoundary/ErrorBoundary';
 import 'react-toastify/dist/ReactToastify.css';
 
 export const App = () => {
@@ -75,69 +76,81 @@ export const App = () => {
   }
 
   return (
-    <div className="relative">
-      <ToastContainer />
-      <div className="fixed -z-[1]">
-        <SharedLayout />
+    <ErrorBoundary>
+      <div className="relative">
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
+        <div className="fixed -z-[1]">
+          <SharedLayout />
+        </div>
+        <div>
+          <Header />
+          <Routes>
+            {/* Public */}
+            <Route
+              path="/"
+              element={isLoggedIn ? <CalculatorPage /> : <MainPage />}
+            />
+
+            {/* Restricted Routes */}
+            <Route
+              path="/login"
+              element={
+                <RestrictedRoute component={LoginPage} redirectTo="/calculator" />
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <RestrictedRoute
+                  component={RegistrationPage}
+                  redirectTo="/calculator"
+                />
+              }
+            />
+            <Route
+              path="/verify"
+              element={
+                <RestrictedRoute
+                  component={VerificationPage}
+                  redirectTo="/calculator"
+                />
+              }
+            />
+
+            {/* Protected Routes */}
+            <Route
+              path="/diary"
+              element={
+                <ProtectedRoute component={DiaryPage} redirectTo="/login" />
+              }
+            />
+            <Route
+              path="/calculator"
+              element={
+                <ProtectedRoute component={CalculatorPage} redirectTo="/login" />
+              }
+            />
+
+            {/* Catch-all for non-existent routes */}
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute component={DiaryPage} redirectTo="/diary" />
+              }
+            />
+          </Routes>
+        </div>
       </div>
-      <div>
-        <Header />
-        <Routes>
-          {/* Public */}
-          <Route
-            path="/"
-            element={isLoggedIn ? <CalculatorPage /> : <MainPage />}
-          />
-
-          {/* Restricted Routes */}
-          <Route
-            path="/login"
-            element={
-              <RestrictedRoute component={LoginPage} redirectTo="/calculator" />
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <RestrictedRoute
-                component={RegistrationPage}
-                redirectTo="/calculator"
-              />
-            }
-          />
-          <Route
-            path="/verify"
-            element={
-              <RestrictedRoute
-                component={VerificationPage}
-                redirectTo="/calculator"
-              />
-            }
-          />
-
-          {/* Protected Routes */}
-          <Route
-            path="/diary"
-            element={
-              <ProtectedRoute component={DiaryPage} redirectTo="/login" />
-            }
-          />
-          <Route
-            path="/calculator"
-            element={
-              <ProtectedRoute component={CalculatorPage} redirectTo="/login" />
-            }
-          />
-
-          {/* Catch-all for non-existent routes */}
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute component={DiaryPage} redirectTo="/diary" />
-            }
-          />
-        </Routes>
-      </div>
-    </div>
+    </ErrorBoundary>
   );
 };

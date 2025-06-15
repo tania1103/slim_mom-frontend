@@ -1,0 +1,19 @@
+{
+  "env": {
+    "serviceworker": true,
+    "browser": true,
+    "es2022": true
+  },
+  "extends": ["eslint:recommended"],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "script"
+  },
+  "rules": {
+    "no-restricted-globals": "off",
+    "no-undef": "off",
+    "no-console": "off",
+    "no-redeclare": "off",
+    "array-callback-return": "error"
+  }
+}

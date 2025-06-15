@@ -1,314 +1,272 @@
-import React, { useState, useEffect } from 'react';
-import css from './MainPage.module.css';
-import backArrow from './backArrow.png';
-import { useMediaQuery } from 'react-responsive';
-import svg from './icons.svg';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { NavLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { fetchProductsByBloodType } from '../../redux/product/productOperation';
-import {
-  getProductNotRecommended,
-  getProductLoading,
-} from '../../redux/product/selector';
-import { Loader } from 'components/Loader/Loader';
+import { updateProfile } from '../../redux/profile/profileOperations';
+import { useAuth } from '../../hooks/useAuth';
+import { validateCalculatorForm } from '../../utils/validation';
+import Modal from '../../components/Modal/Modal';
+import DailyCalorieIntake from '../../components/DailyCalorieIntake/DailyCalorieIntake';
+import styles from './MainPageClean.module.css';
 
 export const MainPage = () => {
   const dispatch = useDispatch();
-  const [height, setHeight] = useState('');
-  const [age, setAge] = useState('');
-  const [cWeight, setCWeight] = useState('');
-  const [dWeight, setDWeight] = useState('');
-  const [isModalOpen, setModalOpen] = useState(false);
-  const [result, setResult] = useState(null);
-  const isTablet = useMediaQuery({ query: '(min-width: 768px)' });
-  const isMobile = useMediaQuery({ query: '(max-width: 767px)' });
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
 
-  const notRecommendedProducts = useSelector(getProductNotRecommended);
-  const isLoading = useSelector(getProductLoading);
+  // Redux selectors with safe defaults
+  const isLoading = useSelector(state => state.product?.isLoading || false);
 
-  // Handle changes in the blood type and fetch products based on it
-  const handleBloodTypeChange = event => {
-    const selectedBloodType = event.target.value;
-    dispatch(fetchProductsByBloodType(Number(selectedBloodType)));
+  // Local state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [calculationResult, setCalculationResult] = useState(null);
+  const [formData, setFormData] = useState({
+    height: '',
+    age: '',
+    currentWeight: '',
+    desiredWeight: '',
+    bloodType: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  // Handle input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Clear error when user starts typing
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
-  const handleHeightChange = event => {
-    setHeight(event.target.value);
-  };
+  // Calculate daily calories
+  const calculateDailyCalories = async (formData) => {
+    const { height, age, currentWeight, bloodType } = formData;
 
-  const handleAgeChange = event => {
-    setAge(event.target.value);
-  };
+    // Formula Mifflin-St Jeor pentru femei
+    const bmr = 447.593 + (9.247 * parseFloat(currentWeight)) +
+                (3.098 * parseFloat(height)) - (4.330 * parseFloat(age));
 
-  const handleCurrentWeightChange = event => {
-    setCWeight(event.target.value);
-  };
+    // Factor de activitate sedentară
+    const dailyCalories = Math.round(bmr * 1.2);
 
-  const handleDesiredWeightChange = event => {
-    setDWeight(event.target.value);
-  };
+    // Fetch produse nerecommandate pentru tipul de sânge
+    let notRecommendedProducts = [];
+    if (bloodType) {
+      try {
+        const resultAction = await dispatch(fetchProductsByBloodType(parseInt(bloodType)));
 
-  // Handle form submission and calculate daily calorie intake
-  const handleSubmit = event => {
-    event.preventDefault();
-
-    // Calculate daily calorie intake
-    const dailyCalorieIntake = Math.ceil(
-      10 * cWeight + 6.25 * height - 5 * age - 161 - 10 * (cWeight - dWeight)
-    );
-
-    setResult(dailyCalorieIntake);
-    setModalOpen(true);
-  };
-
-  const handleModalClose = () => {
-    setModalOpen(false);
-  };
-
-  // Close the modal using the Escape key
-  useEffect(() => {
-    const handleKeyDown = event => {
-      if (event.key === 'Escape') {
-        setModalOpen(false);
+        if (fetchProductsByBloodType.fulfilled.match(resultAction)) {
+          notRecommendedProducts = Array.isArray(resultAction.payload) ? resultAction.payload : [];
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        notRecommendedProducts = [];
       }
-    };
-
-    if (isModalOpen) {
-      window.addEventListener('keydown', handleKeyDown);
     }
 
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+    return {
+      dailyCalories: Math.max(1200, dailyCalories), // Minimum 1200 calories
+      notRecommendedProducts,
+      bmr: Math.round(bmr),
+      activityFactor: 1.2
     };
-  }, [isModalOpen]);
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validate form
+    const validation = validateCalculatorForm(formData);
+    if (!validation.isValid) {
+      setFormErrors(validation.errors);
+      return;
+    }
+
+    setIsCalculating(true);
+    setFormErrors({});
+
+    try {
+      const result = await calculateDailyCalories(formData);
+      setCalculationResult(result);
+      setIsModalOpen(true);
+
+      // If user is logged in, update profile
+      if (isLoggedIn) {
+        const profileData = {
+          height: parseFloat(formData.height),
+          age: parseInt(formData.age),
+          currentWeight: parseFloat(formData.currentWeight),
+          desiredWeight: parseFloat(formData.desiredWeight),
+          bloodType: parseInt(formData.bloodType),
+          dailyCalories: result.dailyCalories
+        };
+
+        dispatch(updateProfile(profileData));
+      }
+
+    } catch (error) {
+      console.error('Calculation error:', error);
+      setCalculationResult({
+        error: 'Unable to calculate. Please try again.',
+        dailyCalories: 0,
+        notRecommendedProducts: []
+      });
+      setIsModalOpen(true);
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  // Handle "Start losing weight" action
+  const handleStartLosing = () => {
+    setIsModalOpen(false);
+    if (isLoggedIn) {
+      navigate('/diary');
+    } else {
+      navigate('/register');
+    }
+  };
+
+  // Close modal
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setCalculationResult(null);
+  };
 
   return (
-    <div className="max-w-[1400px] mx-auto px-[20px] md:px-[32px] xl:px-[32px]">
-      <div className={css.overlayWrapper}>
-        {isModalOpen && (
-          <div className={css.overlay}>
-            <button className={css.overlayBack} onClick={handleModalClose}>
-              <img src={backArrow} width="12px" height="7px" alt="back" />
-            </button>
+    <div className={styles.pageContainer}>
+      <div className={styles.container}>
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <h1 className={styles.formTitle}>
+            Calculate your daily calorie intake right now
+          </h1>
 
-            <div className={css.modal}>
-              <button className={css.overlayClose} onClick={handleModalClose}>
-                <svg width="11.67px" height="11.67px" className={css.modalIcon}>
-                  <use href={`${svg}#icon-close`}></use>
-                </svg>
-              </button>
-              <div className={css.modalContainer}>
-                {isMobile && (
-                  <div className={css.modalTitle}>
-                    Your recommended daily calorie intake is
-                  </div>
-                )}
-                {isTablet && (
-                  <div className={css.modalTitle}>
-                    <div>Your recommended daily</div>
-                    <div>calorie intake is</div>
-                  </div>
-                )}
-                <div className={css.modalValueWrapper}>
-                  <span className={css.modalValue}>{result}</span>
-                  <span className={css.modalValueUnit}>kcal</span>
-                </div>
-                <div className={css.foodsWrapper}>
-                  <div className={css.modalHeading}>
-                    Foods you should not eat
-                  </div>
-                  <ol className={css.modalList}>
-                    {isLoading ? (
-                      <li>
-                        {' '}
-                        <Loader />{' '}
-                      </li>
-                    ) : (
-                      notRecommendedProducts?.data.map((badFood, index) => (
-                        <li key={index}>
-                          {index + 1}.{' '}
-                          {badFood.charAt(0).toUpperCase() + badFood.slice(1)}
-                        </li>
-                      ))
-                    )}
-                  </ol>
-                </div>
-                <NavLink to="/login">
-                  <button className={css.modalSubmit}>
-                    Start losing weight
-                  </button>
-                </NavLink>
-              </div>
+          <div className={styles.formGrid}>
+            {/* Height */}
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>Height *</label>
+              <input
+                type="number"
+                name="height"
+                value={formData.height}
+                onChange={handleInputChange}
+                placeholder="Height in cm"
+                className={`${styles.input} ${formErrors.height ? styles.inputError : ''}`}
+                min="100"
+                max="250"
+              />
+              {formErrors.height && <span className={styles.error}>{formErrors.height}</span>}
+            </div>
+
+            {/* Age */}
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>Age *</label>
+              <input
+                type="number"
+                name="age"
+                value={formData.age}
+                onChange={handleInputChange}
+                placeholder="Age"
+                className={`${styles.input} ${formErrors.age ? styles.inputError : ''}`}
+                min="18"
+                max="100"
+              />
+              {formErrors.age && <span className={styles.error}>{formErrors.age}</span>}
+            </div>
+
+            {/* Current Weight */}
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>Current weight *</label>
+              <input
+                type="number"
+                name="currentWeight"
+                value={formData.currentWeight}
+                onChange={handleInputChange}
+                placeholder="Weight in kg"
+                className={`${styles.input} ${formErrors.currentWeight ? styles.inputError : ''}`}
+                min="30"
+                max="300"
+                step="0.1"
+              />
+              {formErrors.currentWeight && <span className={styles.error}>{formErrors.currentWeight}</span>}
+            </div>
+
+            {/* Desired Weight */}
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>Desired weight *</label>
+              <input
+                type="number"
+                name="desiredWeight"
+                value={formData.desiredWeight}
+                onChange={handleInputChange}
+                placeholder="Weight in kg"
+                className={`${styles.input} ${formErrors.desiredWeight ? styles.inputError : ''}`}
+                min="30"
+                max="300"
+                step="0.1"
+              />
+              {formErrors.desiredWeight && <span className={styles.error}>{formErrors.desiredWeight}</span>}
             </div>
           </div>
-        )}
-        <div className={css.pageContainer}>
-          <div className={css.formWrapper}>
-            <form className={css.form} onSubmit={handleSubmit}>
-              <span className={css.formTitle}>
-                <span className={css.formTitleSection}>
-                  Calculate your daily calorie
-                </span>
-                <span className={css.formTitleSection}>intake right now</span>
-              </span>
-              <div className={css.formInputs}>
-                <div className={css.formSection}>
-                  <label className={css.label}>
-                    {height === '' && (
-                      <span className={css.labelText}>
-                        Height<span className={css.labelTextSmall}> (cm)</span>{' '}
-                        *
-                      </span>
-                    )}
-                    <input
-                      type="number"
-                      name="height"
-                      className={css.input}
-                      title="Enter your height in Centimeters"
-                      autoComplete="off"
-                      required
-                      value={height}
-                      onChange={handleHeightChange}
-                    />
-                  </label>
-                  <label className={css.label}>
-                    {age === '' && (
-                      <span className={css.labelText}>
-                        Age<span className={css.labelTextSmall}> (years)</span>{' '}
-                        *
-                      </span>
-                    )}
-                    <input
-                      type="number"
-                      name="age"
-                      className={css.input}
-                      title="Enter your age"
-                      autoComplete="off"
-                      required
-                      value={age}
-                      onChange={handleAgeChange}
-                    />
-                  </label>
-                  <label className={css.label}>
-                    {cWeight === '' && (
-                      <span className={css.labelText}>
-                        Current Weight
-                        <span className={css.labelTextSmall}> (kg)</span> *
-                      </span>
-                    )}
-                    <input
-                      type="number"
-                      name="currentWeight"
-                      className={css.input}
-                      title="Enter your Current weight in Kilograms"
-                      autoComplete="off"
-                      required
-                      value={cWeight}
-                      onChange={handleCurrentWeightChange}
-                    />
-                  </label>
-                </div>
-                <div className={css.formSection}>
-                  <label className={css.label}>
-                    {dWeight === '' && (
-                      <span className={css.labelText}>
-                        Desired Weight
-                        <span className={css.labelTextSmall}> (kg)</span> *
-                      </span>
-                    )}
-                    <input
-                      type="number"
-                      name="desiredWeight"
-                      className={css.input}
-                      title="Enter your Desired weight in Kilograms"
-                      autoComplete="off"
-                      required
-                      value={dWeight}
-                      onChange={handleDesiredWeightChange}
-                    />
-                  </label>
 
-                  <div className={css.radioWrapper}>
-                    <div className={css.radioTitleLabel}>Blood Type *</div>
-                    <div className={css.radioOptions}>
-                      <div className={css.radioOptionsWrapper}>
-                        <input
-                          type="radio"
-                          name="blood-type"
-                          value="1"
-                          className={`${css.radioArea} ${css.radioInput}`}
-                          id="1"
-                          onChange={handleBloodTypeChange}
-                        />
-                        <label className={css.radioLabelWrapper} htmlFor="1">
-                          <span className={css.radioCircle}>
-                            <span className={css.radioSelector}></span>
-                          </span>
-                          <span className={css.radioLabelText}>1(A)</span>
-                        </label>
-                      </div>
-                      <div className={css.radioOptionsWrapper}>
-                        <input
-                          type="radio"
-                          name="blood-type"
-                          value="2"
-                          className={`${css.radioArea} ${css.radioInput}`}
-                          id="2"
-                          onChange={handleBloodTypeChange}
-                        />
-                        <label className={css.radioLabelWrapper} htmlFor="2">
-                          <span className={css.radioCircle}>
-                            <span className={css.radioSelector}></span>
-                          </span>
-                          <span className={css.radioLabelText}>2(B)</span>
-                        </label>
-                      </div>
-                      <div className={css.radioOptionsWrapper}>
-                        <input
-                          type="radio"
-                          name="blood-type"
-                          value="3"
-                          className={`${css.radioArea} ${css.radioInput}`}
-                          id="3"
-                          onChange={handleBloodTypeChange}
-                        />
-                        <label className={css.radioLabelWrapper} htmlFor="3">
-                          <span className={css.radioCircle}>
-                            <span className={css.radioSelector}></span>
-                          </span>
-                          <span className={css.radioLabelText}>3(AB)</span>
-                        </label>
-                      </div>
-                      <div className={css.radioOptionsWrapper}>
-                        <input
-                          type="radio"
-                          name="blood-type"
-                          value="4"
-                          className={`${css.radioArea} ${css.radioInput}`}
-                          id="4"
-                          onChange={handleBloodTypeChange}
-                        />
-                        <label className={css.radioLabelWrapper} htmlFor="4">
-                          <span className={css.radioCircle}>
-                            <span className={css.radioSelector}></span>
-                          </span>
-                          <span className={css.radioLabelText}>4(O)</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <button className={css.button} type="submit">
-                Start losing weight
-              </button>
-            </form>
+          {/* Blood Type */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>Blood type *</label>
+            <div className={styles.radioGroup}>
+              {['1', '2', '3', '4'].map((type) => (
+                <label key={type} className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="bloodType"
+                    value={type}
+                    checked={formData.bloodType === type}
+                    onChange={handleInputChange}
+                    className={styles.radioInput}
+                  />
+                  <span className={styles.radioCustom}>{type}</span>
+                </label>
+              ))}
+            </div>
+            {formErrors.bloodType && <span className={styles.error}>{formErrors.bloodType}</span>}
           </div>
-        </div>
+
+          {/* Submit Button */}
+          <div className={styles.submitContainer}>
+            <button
+              type="submit"
+              className={styles.submitButton}
+              disabled={isCalculating || isLoading}
+            >
+              {isCalculating ? 'Calculating...' : 'Start losing weight'}
+            </button>
+          </div>
+        </form>
       </div>
+
+      {/* Results Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title="Your Daily Calorie Intake"
+        maxWidth="lg"
+      >
+        {calculationResult && (
+          <DailyCalorieIntake
+            result={calculationResult}
+            onStartLosing={handleStartLosing}
+          />
+        )}
+      </Modal>
     </div>
   );
 };
-
-export default MainPage;
