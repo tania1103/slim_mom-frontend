@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RightSideBar } from 'components/RightSideBar/RightSideBar';
 import DiaryAddProductForm from 'components/Diary/DiaryAddProductForm';
 import DiaryProductsList from 'components/Diary/DiaryProductsList';
@@ -7,11 +7,13 @@ import { Box, Button, Typography } from '@mui/material';
 import { styled } from '@mui/system';
 import { Add as AddIcon } from '@mui/icons-material';
 import { useMediaQuery, useTheme } from '@mui/material';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { getProfileUser, getProfileLoading } from '../redux/profile/selectors';
+import { fetchProfile } from '../redux/profile/profileOperations';
 import { useNavigate } from 'react-router-dom';
 import image from '../images/leave-tab.png';
 import { BtnLoader } from 'components/BtnLoader/BtnLoader';
+import { useAuth } from '../hooks/useAuth';
 
 const StyledFab = styled(Button)({
   backgroundColor: '#FC842D',
@@ -48,6 +50,16 @@ export const DiaryPage = () => {
   const userProfile = useSelector(getProfileUser);
   const navigate = useNavigate();
   const isProfileLoading = useSelector(getProfileLoading);
+  const dispatch = useDispatch();
+  const { isLoggedIn } = useAuth();
+
+  // Fetch profile when user is logged in and profile is not loaded
+  useEffect(() => {
+    if (isLoggedIn && !userProfile && !isProfileLoading) {
+      console.log('🔧 DiaryPage: Fetching user profile...');
+      dispatch(fetchProfile());
+    }
+  }, [isLoggedIn, userProfile, isProfileLoading, dispatch]);
 
   const handleAddProduct = () => {
     setOpen(true);

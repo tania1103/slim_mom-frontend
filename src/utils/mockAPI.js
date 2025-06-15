@@ -8,23 +8,6 @@ import productsData from '../components/data/products.json';
 const mockUsers = new Map();
 let mockUserIdCounter = 1;
 
-// Add a default test user for development
-const defaultUser = {
-  id: 1,
-  name: 'Test User',
-  email: 'test@example.com',
-  password: 'password123',
-  height: 170,
-  age: 25,
-  currentWeight: 70,
-  desiredWeight: 65,
-  bloodType: 2,
-  createdAt: new Date().toISOString(),
-  isVerified: true
-};
-mockUsers.set(1, defaultUser);
-mockUserIdCounter = 2; // Next user will have ID 2
-
 // Mock diary entries
 const mockDiaryEntries = new Map();
 let mockDiaryIdCounter = 1;
@@ -111,24 +94,32 @@ export class MockAPI {
   static async refreshToken(refreshToken) {
     await delay();
 
-    // Extract user ID from refresh token
-    const userId = Math.floor(Math.random() * mockUserIdCounter) + 1;
-    const user = mockUsers.get(userId);
+    // For Mock API, we'll extract user ID from the refresh token
+    // In production, this would validate the refresh token properly
+    try {
+      // Simple mock: extract userId from refresh token format "refresh_<base64>.<base64>.mock-signature"
+      const tokenPart = refreshToken.replace('refresh_', '');
+      const payload = JSON.parse(atob(tokenPart.split('.')[1]));
+      const userId = payload.id;
 
-    if (!user) {
+      const user = mockUsers.get(userId);
+      if (!user) {
+        throw new Error('Invalid refresh token');
+      }
+
+      const { password: _, ...userWithoutPassword } = user;
+      const newToken = generateMockToken(userId);
+
+      return {
+        data: {
+          user: userWithoutPassword,
+          token: newToken,
+          refreshToken: `refresh_${newToken}`
+        }
+      };
+    } catch (error) {
       throw new Error('Invalid refresh token');
     }
-
-    const { password: _, ...userWithoutPassword } = user;
-    const newToken = generateMockToken(userId);
-
-    return {
-      data: {
-        user: userWithoutPassword,
-        token: newToken,
-        refreshToken: `refresh_${newToken}`
-      }
-    };
   }
   static async logout() {
     await delay();
