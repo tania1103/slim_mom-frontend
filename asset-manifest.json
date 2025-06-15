@@ -1,0 +1,19 @@
+{
+  "files": {
+    "main.css": "/slim_mom-frontend/static/css/main.1fd40c5b.css",
+    "main.js": "/slim_mom-frontend/static/js/main.f4026873.js",
+    "static/media/strawberry.png": "/slim_mom-frontend/static/media/strawberry.18444d60f42a7204672c.png",
+    "static/media/banana.png": "/slim_mom-frontend/static/media/banana.8e6f877fb0bf63e0b94f.png",
+    "static/media/leaves.png": "/slim_mom-frontend/static/media/leaves.cbb8ef706c1d5e1b3fa6.png",
+    "static/media/leaves-2.png": "/slim_mom-frontend/static/media/leaves-2.7eae77e53c0c61172abf.png",
+    "static/media/leave-tab.png": "/slim_mom-frontend/static/media/leave-tab.4e838f865089769b3830.png",
+    "static/media/vector.svg": "/slim_mom-frontend/static/media/vector.eee0aef718079c1c2877938c28796510.svg",
+    "index.html": "/slim_mom-frontend/index.html",
+    "main.1fd40c5b.css.map": "/slim_mom-frontend/static/css/main.1fd40c5b.css.map",
+    "main.f4026873.js.map": "/slim_mom-frontend/static/js/main.f4026873.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.1fd40c5b.css",
+    "static/js/main.f4026873.js"
+  ]
+}
