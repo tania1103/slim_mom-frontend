@@ -1,15 +1,13 @@
-import axios from 'axios';
+import api from '../../axiosSetup';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { toast } from 'react-toastify';
-
-axios.defaults.baseURL = process.env.REACT_APP_API_URL;
 
 // Fetch Products by Blood Type
 export const fetchProductsByBloodType = createAsyncThunk(
   'product/fetchByBloodType',
   async (bloodType, thunkAPI) => {
     try {
-      const response = await axios.get(`/product/blood-type/${bloodType}`);
+      const response = await api.get(`/products/search?bloodType=${bloodType}`);
       return response.data;
     } catch (error) {
       const status = error.response?.status;
@@ -25,7 +23,7 @@ export const searchProducts = createAsyncThunk(
     try {
       // Encode the title to handle special characters like parentheses
       const encodedTitle = encodeURIComponent(title);
-      const response = await axios.get(`/product/search?title=${encodedTitle}`);
+      const response = await api.get(`/products/search?query=${encodedTitle}`);
       return response.data;
     } catch (error) {
       const status = error.response?.status;

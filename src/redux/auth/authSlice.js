@@ -1,10 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
-import {
-  register,
-  login,
-  logout,
-  refreshUser,
-  resendVerifyEmail,
+// Import individual operations without creating circular dependencies
+import { 
+  register, 
+  login, 
+  logout, 
+  refreshUser, 
+  verifyEmail
 } from './authOperations';
 
 const initialState = {
@@ -20,11 +21,17 @@ const initialState = {
 const authSlice = createSlice({
   name: 'auth',
   initialState,
-  reducers: {},
+  reducers: {
+    clearError: (state) => {
+      state.error = null;
+    }
+  },
   extraReducers: builder => {
     builder
+      // Register
       .addCase(register.pending, state => {
         state.isLoading = true;
+        state.error = null;
       })
       .addCase(register.fulfilled, (state, { payload }) => {
         state.user = payload.user;
@@ -37,8 +44,10 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = payload;
       })
+      // Login
       .addCase(login.pending, state => {
         state.isLoading = true;
+        state.error = null;
       })
       .addCase(login.fulfilled, (state, { payload }) => {
         state.user = payload.user;
@@ -52,6 +61,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = payload;
       })
+      // Logout
       .addCase(logout.pending, state => {
         state.isLoading = true;
       })
@@ -64,7 +74,7 @@ const authSlice = createSlice({
         state.error = null;
         localStorage.removeItem('persist:auth');
       })
-      .addCase(logout.rejected, (state, { payload }) => {
+      .addCase(logout.rejected, (state) => {
         state.user = null;
         state.token = null;
         state.refreshToken = null;
@@ -73,6 +83,7 @@ const authSlice = createSlice({
         state.error = null;
         localStorage.removeItem('persist:auth');
       })
+      // Refresh User
       .addCase(refreshUser.pending, state => {
         state.isRefreshing = true;
         state.isLoading = true;
@@ -94,14 +105,31 @@ const authSlice = createSlice({
         state.isLoggedIn = false;
         localStorage.removeItem('persist:auth');
       })
-      .addCase(resendVerifyEmail.pending, state => {
+      // Email Verification
+      .addCase(verifyEmail.pending, state => {
         state.isLoading = true;
+        state.error = null;
       })
-      .addCase(resendVerifyEmail.fulfilled, state => {
+      .addCase(verifyEmail.fulfilled, state => {
         state.isLoading = false;
         state.error = null;
       })
-      .addCase(resendVerifyEmail.rejected, (state, { payload }) => {
+      .addCase(verifyEmail.rejected, (state, { payload }) => {
+        state.isLoading = false;
+        state.error = payload;
+      })
+      // Handle get current user with string action types to avoid circular deps
+      .addCase('auth/getCurrentUser/pending', (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase('auth/getCurrentUser/fulfilled', (state, { payload }) => {
+        state.user = payload.user;
+        state.isLoggedIn = true;
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase('auth/getCurrentUser/rejected', (state, { payload }) => {
         state.isLoading = false;
         state.error = payload;
       });

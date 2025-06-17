@@ -1,8 +1,6 @@
-import axios from 'axios';
+import api from '../../axiosSetup';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { selectToken } from '../auth/selectors';
-
-axios.defaults.baseURL = process.env.REACT_APP_API_URL;
 
 // Update Profile
 export const updateProfile = createAsyncThunk(
@@ -16,8 +14,7 @@ export const updateProfile = createAsyncThunk(
       return rejectWithValue('No token found');
     }
 
-    try {
-      const response = await axios.put(
+    try {      const response = await api.put(
         '/profile/update',
         {
           height,
@@ -50,12 +47,7 @@ export const fetchProfile = createAsyncThunk(
       return thunkAPI.rejectWithValue('No token found');
     }
 
-    try {
-      const response = await axios.get('/profile/fetch', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    try {      const response = await api.get('/profile/fetch');
 
       return response.data;
     } catch (error) {

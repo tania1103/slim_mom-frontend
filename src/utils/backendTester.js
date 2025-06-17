@@ -5,9 +5,8 @@
 import axios from 'axios';
 
 // Backend URL configuration
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL ||
-                   'https://slimmom-backend-y9wy.onrender.com' ||
-                   'http://localhost:5000';
+const BACKEND_URL = process.env.REACT_APP_API_URL || 
+                   'https://slimmom-backend-y9wy.onrender.com';
 
 // Wake up the backend server (for services like Render that sleep)
 export const wakeUpBackend = async () => {
@@ -17,15 +16,29 @@ export const wakeUpBackend = async () => {
 
   for (let i = 1; i <= wakeUpAttempts; i++) {
     try {
-      console.log(`⏰ Wake up attempt ${i}/${wakeUpAttempts}...`);
-
-      const response = await axios.get(`${BACKEND_URL}/health`, {
-        timeout: 30000, // 30 seconds timeout
-        validateStatus: () => true // Accept any status
+      console.log(`⏰ Wake up attempt ${i}/${wakeUpAttempts}...`);      // First try the health endpoint
+      try {
+        const healthResponse = await axios.get(`${BACKEND_URL}/health`, {
+          timeout: 10000,
+          validateStatus: () => true
+        });
+        
+        if (healthResponse.status === 200) {
+          console.log('✅ Backend is awake and responding to health check!');
+          return true;
+        }
+      } catch (healthError) {
+        console.log('Health endpoint failed, trying root endpoint...');
+      }
+      
+      // If health endpoint fails, try root endpoint
+      const response = await axios.get(`${BACKEND_URL}`, {
+        timeout: 15000,
+        validateStatus: () => true
       });
 
       if (response.status === 200) {
-        console.log('✅ Backend is awake and responding!');
+        console.log('✅ Backend is awake and responding to root endpoint!');
         return true;
       }
     } catch (error) {
@@ -51,19 +64,18 @@ export const testBackendConnectivity = async () => {
     '/api/auth/register',
     '/api/auth/login',
     '/api/auth/logout',
+    '/api/auth/refresh',    '/api/products/search',
+    '/api/products/blood-type/1',
+    '/api/diary',
+    '/api/profile',
+    '/api/auth/register',
+    '/api/auth/login',
+    '/api/auth/logout',
     '/api/auth/refresh',
     '/api/products/search',
     '/api/products/blood-type/1',
     '/api/diary',
     '/api/profile',
-    '/auth/register',
-    '/auth/login',
-    '/auth/logout',
-    '/auth/refresh',
-    '/products/search',
-    '/products/blood-type/1',
-    '/diary',
-    '/profile',
     '/',
     '/api',
     '/health',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { resendVerifyEmail } from '../../redux/auth/authOperations';
+import { verifyEmail } from '../../redux/auth/authOperations';
 import { selectIsLoading } from '../../redux/auth/selectors';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -20,7 +20,7 @@ export const VerificationForm = () => {
       return;
     }
 
-    dispatch(resendVerifyEmail(email));
+    dispatch(verifyEmail(email));
   };
 
   return (

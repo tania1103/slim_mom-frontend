@@ -3,6 +3,10 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 32px 32px 64px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .container {
@@ -45,6 +49,14 @@
   color: #9B9FAA;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  position: relative;
+}
+
+.label::after {
+  content: '*';
+  color: #FC842D;
+  margin-left: 4px;
+  font-weight: 700;
 }
 
 .input {
@@ -52,8 +64,12 @@
   border: 1px solid #E0E0E0;
   border-radius: 4px;
   font-size: 14px;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   background: white;
+}
+
+.input:hover {
+  border-color: #FC842D;
 }
 
 .input:focus {
@@ -79,6 +95,20 @@
   color: #d32f2f;
   font-size: 12px;
   margin-top: 4px;
+  font-weight: 500;
+  display: block;
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .radioGroup {
@@ -99,17 +129,18 @@
 }
 
 .radioCustom {
-  width: 20px;
-  height: 20px;
-  border: 1px solid #E0E0E0;
+  width: 32px;
+  height: 32px;
+  border: 2px solid #E0E0E0;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   transition: all 0.2s ease;
   background: white;
+  color: #9B9FAA;
 }
 
 .radioInput:checked + .radioCustom {

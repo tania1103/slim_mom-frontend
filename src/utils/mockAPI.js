@@ -1,16 +1,62 @@
 /**
- * Mock API pentru development când backend-ul nu e disponibil
+ * Mock API pentru development când backend-ul nu este disponibil
  * Simulează toate endpoint-urile necesare
  */
 import productsData from '../components/data/products.json';
 
+// LocalStorage keys
+const MOCK_USERS_KEY = 'mockAPI_users';
+const MOCK_DIARY_KEY = 'mockAPI_diary';
+const MOCK_COUNTERS_KEY = 'mockAPI_counters';
+
+// Load data from localStorage
+const loadMockData = () => {
+  try {
+    const usersData = localStorage.getItem(MOCK_USERS_KEY);
+    const diaryData = localStorage.getItem(MOCK_DIARY_KEY);
+    const countersData = localStorage.getItem(MOCK_COUNTERS_KEY);
+
+    const users = usersData ? JSON.parse(usersData) : [];
+    const diary = diaryData ? JSON.parse(diaryData) : [];
+    const counters = countersData ? JSON.parse(countersData) : { userCounter: 1, diaryCounter: 1 };
+
+    return { users, diary, counters };
+  } catch (error) {
+    console.warn('🔧 Failed to load mock data from localStorage:', error);
+    return { users: [], diary: [], counters: { userCounter: 1, diaryCounter: 1 } };
+  }
+};
+
+// Save data to localStorage
+const saveMockData = (users, diary, counters) => {
+  try {
+    localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
+    localStorage.setItem(MOCK_DIARY_KEY, JSON.stringify(diary));
+    localStorage.setItem(MOCK_COUNTERS_KEY, JSON.stringify(counters));
+  } catch (error) {
+    console.warn('🔧 Failed to save mock data to localStorage:', error);
+  }
+};
+
+// Initialize data
+const { users, diary, counters } = loadMockData();
+
 // Mock users database
-const mockUsers = new Map();
-let mockUserIdCounter = 1;
+const mockUsers = new Map(users.map(user => [user.id, user]));
+let mockUserIdCounter = counters.userCounter;
 
 // Mock diary entries
-const mockDiaryEntries = new Map();
-let mockDiaryIdCounter = 1;
+const mockDiaryEntries = new Map(diary.map(entry => [entry.userId, entry.entries || []]));
+let mockDiaryIdCounter = counters.diaryCounter;
+
+// Helper to persist data - defined after mockUsers and mockDiaryEntries
+const persistMockData = () => {
+  const users = Array.from(mockUsers.entries()).map(([id, user]) => user);
+  const diary = Array.from(mockDiaryEntries.entries()).map(([userId, entries]) => ({ userId, entries }));
+  const counters = { userCounter: mockUserIdCounter, diaryCounter: mockDiaryIdCounter };
+
+  saveMockData(users, diary, counters);
+};
 
 // Simulate network delay
 const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
@@ -25,6 +71,28 @@ const generateMockToken = (userId) => {
   }));
   return `${header}.${payload}.mock-signature`;
 };
+
+// Initialize with default test user if no users exist
+const initializeDefaultUser = () => {
+  if (mockUsers.size === 0) {
+    console.log('🔧 Creating default test user for Mock API');
+    const defaultUser = {
+      id: 1,
+      name: 'Test User',
+      email: 'test@example.com',
+      password: 'password123',
+      createdAt: new Date().toISOString(),
+      isVerified: true
+    };
+    mockUsers.set(1, defaultUser);
+    mockUserIdCounter = 2;
+    persistMockData();
+    console.log('✅ Default user created: test@example.com / password123');
+  }
+};
+
+// Initialize default user
+initializeDefaultUser();
 
 export class MockAPI {
   static isEnabled = process.env.REACT_APP_ENABLE_MOCK_FALLBACK === 'true';
@@ -51,6 +119,7 @@ export class MockAPI {
     };
 
     mockUsers.set(userId, { ...user, password });
+    persistMockData(); // Save to localStorage
     const token = generateMockToken(userId);
 
     return {
@@ -67,27 +136,33 @@ export class MockAPI {
 
     const { email, password } = credentials;
     console.log('🔧 Mock login attempt for:', email);
+    console.log('🔧 Available users:', Array.from(mockUsers.values()).map(u => ({ id: u.id, email: u.email })));
 
-      // Find user by email
+    // Find user by email
     for (const [userId, user] of mockUsers) {
-      if (user.email === email && user.password === password) {
-        console.log('✅ Login successful - userId:', userId);
-        console.log('🔧 Full user object:', user);
-        const { password: _, ...userWithoutPassword } = user;
-        console.log('🔧 User without password:', userWithoutPassword);
-        const token = generateMockToken(userId); // Use the existing userId from mockUsers
+      console.log('🔧 Checking user:', user.email, 'vs', email);
+      if (user.email === email) {
+        console.log('🔧 Email match found, checking password...');
+        if (user.password === password) {
+          console.log('✅ Login successful - userId:', userId);
+          const { password: _, ...userWithoutPassword } = user;
+          const token = generateMockToken(userId);
 
-        return {
-          data: {
-            user: userWithoutPassword,
-            token,
-            refreshToken: `refresh_${token}`
-          }
-        };
+          return {
+            data: {
+              user: userWithoutPassword,
+              token,
+              refreshToken: `refresh_${token}`
+            }
+          };
+        } else {
+          console.log('❌ Password mismatch for user:', email);
+        }
       }
     }
 
     console.error('❌ Login failed for:', email);
+    console.log('🔧 Suggestion: Try test@example.com / password123');
     throw new Error('Invalid credentials');
   }
 
@@ -234,6 +309,7 @@ export class MockAPI {
     };
 
     mockUsers.set(userId, updatedUser);
+    persistMockData(); // Save to localStorage
     console.log('✅ Profile updated successfully for user:', userId);
 
     const { password: _, ...userWithoutPassword } = updatedUser;
@@ -259,4 +335,27 @@ export class MockAPI {
 // Initialize with some demo data
 if (MockAPI.isEnabled) {
   console.log('🔧 Mock API enabled for development');
+  console.log('📊 Loaded users:', Array.from(mockUsers.keys()));
+  console.log('📊 Loaded diary entries:', Array.from(mockDiaryEntries.keys()));
+
+  // If no users exist, add a default test user
+  if (mockUsers.size === 0) {
+    console.log('🔧 Creating default test user...');
+    const defaultUser = {
+      id: 1,
+      name: 'Test User',
+      email: 'test@example.com',
+      password: 'password123',
+      height: 170,
+      age: 25,
+      currentWeight: 70,
+      desiredWeight: 65,
+      bloodType: 2,
+      createdAt: new Date().toISOString(),
+      isVerified: true
+    };
+    mockUsers.set(1, defaultUser);
+    mockUserIdCounter = 2;
+    persistMockData();
+  }
 }

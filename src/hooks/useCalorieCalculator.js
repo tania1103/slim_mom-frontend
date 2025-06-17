@@ -1,71 +1,91 @@
 import { useState, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
-import { fetchProductsByBloodType } from '../redux/product/productOperation';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  calculateDailyCaloriesPublic,
+  calculateDailyCaloriesPrivate
+} from '../redux/calories/calorieOperations';
+import { setManualCalculation } from '../redux/calories/calorieSlice';
+import { selectIsLoggedIn } from '../redux/auth/selectors';
 
 /**
  * Custom hook pentru calcularea caloriilor zilnice
- * Centralizează logica de calcul din MainPage/CalculatorForm
+ * Centralizează logica de calcul și poate folosi atât API-ul extern cât și calculul local
  */
 export const useCalorieCalculator = () => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [result, setResult] = useState(null);
   const dispatch = useDispatch();
+  const isLoggedIn = useSelector(selectIsLoggedIn);
 
   const calculateDailyCalories = useCallback(async (formData) => {
     setIsCalculating(true);
     try {
-      const { height, age, currentWeight, bloodType } = formData;
-      
+      // Convertește formatul de date de la UI la API
+      const apiData = {
+        age: Number(formData.age),
+        height: Number(formData.height),
+        weight: Number(formData.currentWeight),
+        desiredWeight: Number(formData.desiredWeight),
+        bloodType: Number(formData.bloodType || 1)
+      };
+
+      let calculationResult;
+
+      // Dacă backend-ul este accesibil, folosim API-ul
+      try {
+        // Folosește endpoint-ul privat dacă utilizatorul e logat, altfel cel public
+        const actionThunk = isLoggedIn
+          ? calculateDailyCaloriesPrivate(apiData)
+          : calculateDailyCaloriesPublic(apiData);
+
+        const resultAction = await dispatch(actionThunk);
+
+        if (!resultAction.error) {
+          calculationResult = {
+            dailyCalories: resultAction.payload.dailyRate,
+            notRecommendedProducts: resultAction.payload.notAllowedProducts || [],
+          };
+
+          setResult(calculationResult);
+          return calculationResult;
+        }
+      } catch (apiError) {
+        console.warn('API calculation failed, falling back to local calculation', apiError);
+      }
+
+      // Fallback la calculul local dacă API-ul nu e disponibil
+      const { height, age, currentWeight } = formData;
+
       // Formula Mifflin-St Jeor pentru femei
-      const bmr = 447.593 + (9.247 * parseFloat(currentWeight)) + 
-                  (3.098 * parseFloat(height)) - (4.330 * parseFloat(age));
-      
+      const bmr = 447.593 + (9.247 * parseFloat(currentWeight)) +
+                (3.098 * parseFloat(height)) - (4.330 * parseFloat(age));
+
       // Factor de activitate sedentară
       const dailyCalories = Math.round(bmr * 1.2);
-      
-      // Fetch produse nerecommandate pentru tipul de sânge
-      let notRecommendedProducts = [];
-      if (bloodType) {
-        const resultAction = await dispatch(fetchProductsByBloodType(parseInt(bloodType)));
-        
-        if (fetchProductsByBloodType.fulfilled.match(resultAction)) {
-          notRecommendedProducts = Array.isArray(resultAction.payload) ? resultAction.payload : [];
-        }
-      }
-      
-      const calculationResult = {
+
+      // Salvăm rezultatul calculat local în Redux
+      calculationResult = {
         dailyCalories: Math.max(1200, dailyCalories), // Minimum 1200 calories
-        notRecommendedProducts,
+        notRecommendedProducts: [],
         bmr: Math.round(bmr),
         activityFactor: 1.2
       };
-      
+
+      dispatch(setManualCalculation(calculationResult));
+
       setResult(calculationResult);
       return calculationResult;
-      
     } catch (error) {
-      console.error('Error calculating daily intake:', error);
-      const errorResult = {
-        dailyCalories: 0,
-        notRecommendedProducts: [],
-        error: 'Unable to calculate. Please try again.'
-      };
-      setResult(errorResult);
-      return errorResult;
+      console.error('Error in calorie calculation:', error);
+      return null;
     } finally {
       setIsCalculating(false);
     }
-  }, [dispatch]);
-
-  const resetCalculation = useCallback(() => {
-    setResult(null);
-    setIsCalculating(false);
-  }, []);
+  }, [dispatch, isLoggedIn]);
 
   return {
-    calculateDailyCalories,
-    resetCalculation,
     isCalculating,
-    result
+    result,
+    calculateDailyCalories,
   };
 };

@@ -10,10 +10,10 @@ import { RestrictedRoute } from './RestrictedRoute/RestrictedRoute';
 import { ProtectedRoute } from './ProtectedRoute/ProtectedRoute';
 import { useAuth } from 'hooks/useAuth';
 import { SharedLayout } from './SharedLayout/SharedLayout';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { jwtDecode } from 'jwt-decode';
-import { logout, refreshUser } from '../redux/auth/authOperations';
+import { refreshUser } from '../redux/auth/authOperations';
 import { fetchProfile } from '../redux/profile/profileOperations';
 import { fetchDiaryEntries } from '../redux/diary/diaryOperations';
 import { Loader } from './Loader/Loader';
@@ -24,47 +24,36 @@ import 'react-toastify/dist/ReactToastify.css';
 export const App = () => {
   const { isLoggedIn, token, isRefreshing } = useAuth();
   const dispatch = useDispatch();
-  const refreshInterval = useRef(null);
   const selectedDate = useSelector(state => state.diary.selectedDate);
-
-  // Effect to check and decode token
+  // Effect to check token validity on app start
   useEffect(() => {
-    if (token) {
+    // Attempt refresh on app start if we have a token but validity is uncertain
+    if (token && !isRefreshing) {
+      // Try to decode token to check expiry
       try {
-        const { exp } = jwtDecode(token); // Decode token to get expiry
+        const { exp } = jwtDecode(token);
         const currentTime = Date.now() / 1000;
-
+        
         if (exp < currentTime) {
-          dispatch(logout()); // Force logout if the token is expired
+          // Token is expired, try to refresh
+          dispatch(refreshUser());
+        } else {
+          // Token is still valid, just refresh user data
+          dispatch(fetchProfile());
         }
       } catch (error) {
-        console.error('Error decoding token:', error);
-        dispatch(logout());
+        console.error('Error processing token:', error);
+        dispatch(refreshUser()); // Try refresh as fallback
       }
     }
-  }, [token, dispatch]);
+  }, [token, dispatch, isRefreshing]);
 
-  // Effect to refresh user profile and diary entries
+  // Effect to load data when logged in and date changes
   useEffect(() => {
-    if (isLoggedIn) {
-      dispatch(fetchProfile());
+    if (isLoggedIn && !isRefreshing) {
       dispatch(fetchDiaryEntries(selectedDate));
-
-      refreshInterval.current = setInterval(() => {
-        dispatch(refreshUser());
-      }, 30 * 60 * 1000); // Refresh every 30 minutes
-
-      return () => {
-        if (refreshInterval.current) {
-          clearInterval(refreshInterval.current);
-        }
-      };
-    } else {
-      if (refreshInterval.current) {
-        clearInterval(refreshInterval.current);
-      }
     }
-  }, [dispatch, isLoggedIn, selectedDate]);
+  }, [dispatch, isLoggedIn, selectedDate, isRefreshing]);
 
   // Render Loader if refreshing token
   if (isRefreshing) {

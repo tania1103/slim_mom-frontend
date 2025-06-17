@@ -1,20 +1,17 @@
-import axios from 'axios';
+import api from '../../axiosSetup';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'react-toastify';
 
 
-axios.defaults.baseURL = process.env.REACT_APP_API_URL;
-
-
 // Utility to add JWT
 const setAuthHeader = token => {
-  axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+  api.defaults.headers.common.Authorization = `Bearer ${token}`;
 };
 
 // Utility to delete JWT
 const clearAuthHeader = () => {
-  delete axios.defaults.headers.common.Authorization;
+  delete api.defaults.headers.common.Authorization;
 };
 
 // Utility to schedule token refresh
@@ -23,25 +20,34 @@ const scheduleTokenRefresh = (token, dispatch) => {
   if (refreshTimeout) clearTimeout(refreshTimeout);
 
   try {
-    const { exp } = jwtDecode(token);
-    const currentTime = Date.now() / 1000;
+    const decoded = jwtDecode(token);
+    if (!decoded || !decoded.exp) {
+      console.error('Invalid token format - missing expiration');
+      return;
+    }
 
-    const timeUntilExpiry = exp - currentTime;
+    const currentTime = Date.now() / 1000;
+    const timeUntilExpiry = decoded.exp - currentTime;
 
     if (timeUntilExpiry <= 0) {
       // Token expired, log out the user
+      console.log('Token expired, logging out');
       dispatch(logout());
       return;
     }
 
-    // Schedule refresh 1 minute before expiry
-    const refreshTime = Math.max(timeUntilExpiry - 60, 0) * 1000;
-
+    // Schedule refresh at 80% of token lifetime to ensure we refresh before expiry
+    // but not too early (with a minimum of 30 seconds before expiry)
+    const refreshTime = Math.max(Math.min(timeUntilExpiry * 0.8, timeUntilExpiry - 30), 0) * 1000;
+    
+    console.log(`Token refresh scheduled in ${Math.round(refreshTime / 1000)} seconds`);
+    
     refreshTimeout = setTimeout(() => {
+      console.log('Executing scheduled token refresh');
       dispatch(refreshUser());
     }, refreshTime);
   } catch (error) {
-    console.error('Error decoding JWT', error);
+    console.error('Error processing JWT for refresh scheduling:', error);
     dispatch(logout());
   }
 };
@@ -51,7 +57,7 @@ export const register = createAsyncThunk(
   'auth/register',
   async (credentials, thunkAPI) => {
     try {
-      const response = await axios.post('/auth/register', credentials);
+      const response = await api.post('/api/auth/register', credentials);
       setAuthHeader(response.data.token);
       toast.success(
         'Account created! Verification has been sent to your email'
@@ -75,16 +81,12 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials, thunkAPI) => {
     try {
-      const response = await axios.post('/auth/login', credentials);
-      console.log('🔧 Login response:', response.data);
-
+      const response = await api.post('/api/auth/login', credentials);
+      
       const { user, accessToken, refreshToken, token } = response.data;
       // Handle both backend format (accessToken) and Mock API format (token)
       const finalToken = accessToken || token;
-
-      console.log('🔧 Final user data:', user);
-      console.log('🔧 Final token:', finalToken);
-
+      
       setAuthHeader(finalToken);
       scheduleTokenRefresh(finalToken, thunkAPI.dispatch);
       return { user, token: finalToken, refreshToken };
@@ -114,68 +116,70 @@ export const login = createAsyncThunk(
 
 // Logout
 export const logout = createAsyncThunk('auth/logout', async (_, thunkAPI) => {
-  const state = thunkAPI.getState();
-  const token = state.auth.token;
-
-  if (!token) {
-    return thunkAPI.rejectWithValue('No token found');
-  }
-
   try {
-    setAuthHeader(token);
-    await axios.post('/auth/logout');
+    await api.post('/api/auth/logout');
+  } catch (error) {
+    // ignore errors
+  } finally {
     clearAuthHeader();
     clearTimeout(refreshTimeout);
-  } catch (error) {
-    return thunkAPI.rejectWithValue(error.message);
   }
 });
 
 // Refresh User
 export const refreshUser = createAsyncThunk(
-  'auth/refresh',
+  'auth/refreshUser',
   async (_, thunkAPI) => {
-    const state = thunkAPI.getState();
-    const refreshToken = state.auth.refreshToken;
-
+    const refreshToken = thunkAPI.getState().auth.refreshToken;
     if (!refreshToken) {
-      return thunkAPI.rejectWithValue('No refresh token found');
+      return thunkAPI.rejectWithValue('No refresh token available');
     }
 
     try {
-      const response = await axios.post('/auth/refresh', { refreshToken });
-      const {
-        user,
-        accessToken,
-        refreshToken: newRefreshToken,
-      } = response.data;
+      const response = await api.post('/api/auth/refresh', { refreshToken });
+      const { accessToken, token } = response.data;
+      const newToken = accessToken || token;
 
-      setAuthHeader(accessToken);
-      scheduleTokenRefresh(accessToken, thunkAPI.dispatch);
-
-      return { user, token: accessToken, refreshToken: newRefreshToken };
+      setAuthHeader(newToken);
+      scheduleTokenRefresh(newToken, thunkAPI.dispatch);
+      return { token: newToken };
     } catch (error) {
-      // Handle refresh token expiration
-      if (error.response?.status === 401) {
-        thunkAPI.dispatch(logout());
-      }
-
+      console.error('Token refresh failed:', error);
+      
+      // Clear auth on refresh failure
+      clearAuthHeader();
+      
       return thunkAPI.rejectWithValue(
-        error.response?.data?.message || error.message
+        error.response?.data?.message || 'Token refresh failed'
       );
     }
   }
 );
 
-// Resend Verify Email
-export const resendVerifyEmail = createAsyncThunk(
-  'auth/resendVerifyEmail',
+// Get current user
+export const getCurrentUser = createAsyncThunk(
+  'auth/getCurrentUser',
+  async (_, thunkAPI) => {
+    const token = thunkAPI.getState().auth.token;
+    if (!token) return thunkAPI.rejectWithValue(null);
+
+    setAuthHeader(token);
+    try {
+      const response = await api.get('/api/auth/current');
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data || 'Failed to get user data');
+    }
+  }
+);
+
+// Verify email
+export const verifyEmail = createAsyncThunk(
+  'auth/verify',
   async (email, thunkAPI) => {
     try {
-      const response = await axios.post('/auth/verify', { email });
-
-      toast.success('Verification email sent successfully.');
-
+      const response = await api.post('/api/auth/verify', { email });
+      toast.info('Verification email sent');
       return response.data;
     } catch (error) {
       const status = error.response?.status;
@@ -194,23 +198,5 @@ export const resendVerifyEmail = createAsyncThunk(
   }
 );
 
-// Current User
-export const getCurrentUser = createAsyncThunk(
-  'auth/getCurrentUser',
-  async (_, thunkAPI) => {
-    const state = thunkAPI.getState();
-    const persistedToken = state.auth.token;
-
-    if (!persistedToken) {
-      return thunkAPI.rejectWithValue('No token found');
-    }
-
-    try {
-      setAuthHeader(persistedToken);
-      const response = await axios.get('/auth/current');
-      return response.data;
-    } catch (error) {
-      return thunkAPI.rejectWithValue(error.response.data);
-    }
-  }
-);
+// For backward compatibility
+export const resendVerifyEmail = verifyEmail;

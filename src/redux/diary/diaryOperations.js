@@ -1,38 +1,36 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '../../axiosSetup';
 import { formatDateForAPI } from '../../utils/dateHelpers';
 import { selectToken } from '../auth/selectors';
-
-axios.defaults.baseURL = process.env.REACT_APP_API_URL;
 
 export const addToDiary = createAsyncThunk(
   'diary/addToDiary',
   async ({ date, grams, product }, { getState, rejectWithValue }) => {
     try {
-      const token = selectToken(getState());
-      const { calories, categories, title } = product;
-      const calorieIntake = (grams * calories) / 100;
-
-      const response = await axios.post(
-        '/diary/add',
+      // We don't need to explicitly use token as it's handled by axios interceptor
+      // Just check that we have it
+      if (!selectToken(getState())) {
+        return rejectWithValue('No authentication token found');
+      }
+      
+      const { calories, categories, title, _id: productId } = product;
+      const calorieIntake = (grams * calories) / 100;      
+      
+      const response = await api.post(
+        '/api/diary',
         {
-          date, // Use the passed date here
-          title,
+          date,
+          productId,
           grams,
-          calories,
-          calorieIntake,
+          title,
+          calories: calorieIntake,
           category: categories,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         }
       );
 
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || 'Failed to add product to diary');
     }
   }
 );
@@ -47,12 +45,8 @@ export const fetchDiaryEntries = createAsyncThunk(
     }
 
     const formattedDate = formatDateForAPI(date);
-    try {
-      const response = await axios.get(`/diary/fetch?date=${formattedDate}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    try {      
+      const response = await api.get(`/api/diary/${formattedDate}`);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -71,12 +65,8 @@ export const deleteDiaryEntry = createAsyncThunk(
       return rejectWithValue('No authentication token found');
     }
 
-    try {
-      await axios.delete(`/diary/delete/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    try {      
+      await api.delete(`/api/diary/${id}`);
       return id; // Return the id of the deleted item
     } catch (error) {
       return rejectWithValue(
